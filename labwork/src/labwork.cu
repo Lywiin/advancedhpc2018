@@ -144,7 +144,19 @@ int getSPcores(cudaDeviceProp devProp) {
 }
 
 void Labwork::labwork2_GPU() {
-    
+    int deviceCount = 0;
+    cudaGetDeviceCount(&deviceCount);
+    printf("Number of GPU %d\n", deviceCount);
+    for (int i = 0; i < deviceCount; i++) {
+        cudaDeviceProp prop;
+        cudaGetDeviceProperties(&prop, i);
+        printf("\nDevice number #%d\n", i);
+        printf("Device name: %s\n", prop.name);
+        printf("Clock rate: %d\n", prop.clockRate);
+        printf("Processor count: %d\n", getSPcores(prop));
+        printf("Multiprocessor count: %d\n", prop.multiProcessorCount);
+        printf("Warp size: %d\n", prop.warpSize);
+    }   
 }
 
 void Labwork::labwork3_GPU() {
