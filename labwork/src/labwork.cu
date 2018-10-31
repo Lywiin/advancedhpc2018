@@ -168,6 +168,8 @@ void Labwork::labwork3_GPU() {
     // inputImage->width, inputImage->height    
 	int pixelCount = inputImage->width * inputImage->height;
 	outputImage = static_cast<char *>(malloc(pixelCount * 3));
+	int blockSize = 1024;
+	int numBlock = pixelCount / blockSize;
 
     // cuda malloc: devInput, devOutput
 	uchar3 *devInput;
@@ -179,8 +181,6 @@ void Labwork::labwork3_GPU() {
 	cudaMemcpy(devInput, inputImage->buffer, inputImage->width * inputImage->height * 3, cudaMemcpyHostToDevice);
 
     // launch the kernel
-	int blockSize = 64;
-	int numBlock = pixelCount / blockSize;
 	grayscale<<<numBlock, blockSize>>>(devInput, devOutput);
 
     // cudaMemcpy: devOutput -> inputImage (host)
