@@ -44,8 +44,10 @@ int main(int argc, char **argv) {
             labwork.labwork2_GPU();
             break;
         case 3:
+	    timer.start();
             labwork.labwork3_GPU();
             labwork.saveOutputImage("labwork3-gpu-out.jpg");
+            printf("labwork 3 CPU ellapsed %.1fms\n", lwNum, timer.getElapsedTimeInMilliSec());
             break;
         case 4:
             labwork.labwork4_GPU();
@@ -189,9 +191,44 @@ void Labwork::labwork3_GPU() {
     // cudaFree
 	cudaFree(&devInput);
 	cudaFree(&devOutput);
+
+}
+
+__global__ void grayscale2d(uchar3* input, uchar3* output, int width) {
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    int tid = tidx + tidy * width;
+    output[tid].x = (input[tid].x + input[tid].y + input[tid].z) / 3;
+    output[tid].z = output[tid].y = output[tid].x;
 }
 
 void Labwork::labwork4_GPU() {
+    // inputImage->width, inputImage->height    
+	int pixelCount = inputImage->width * inputImage->height;
+	outputImage = static_cast<char *>(malloc(pixelCount * 3));
+	//int blockSize = 1024;
+	//int numBlock = pixelCount / blockSize;
+	dim3 blockSize = dim3(32, 32);
+	dim3 gridSize = dim3(inputImage->width / blockSize.x, inputImage->height / blockSize.y);
+
+    // cuda malloc: devInput, devOutput
+	uchar3 *devInput;
+	uchar3 *devOutput;
+	cudaMalloc(&devInput, inputImage->width * inputImage->height * 3);	
+	cudaMalloc(&devOutput, inputImage->width * inputImage->height * 3);
+
+    // cudaMemcpy: inputImage (hostInput) -> devInput
+	cudaMemcpy(devInput, inputImage->buffer, inputImage->width * inputImage->height * 3, cudaMemcpyHostToDevice);
+
+    // launch the kernel
+	grayscale2d<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width);
+
+    // cudaMemcpy: devOutput -> inputImage (host)
+	cudaMemcpy(outputImage, devOutput, inputImage->width * inputImage->height * 3, cudaMemcpyDeviceToHost);
+
+    // cudaFree
+	cudaFree(&devInput);
+	cudaFree(&devOutput);
    
 }
 
