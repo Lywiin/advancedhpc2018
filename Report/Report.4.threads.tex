@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Report.4.threads}
+\author{Remi}
+\date{October 2018}
+
+\begin{document}
+
+\maketitle
+
+\section{Explain how you improve the labwork}
+
+I followed the following steps:
+\begin{enumerate}  
+\item Change blockSize and gridSize variable type to dim3
+\item Calculate gridSize using image width and height
+\item Change the kernel to know use the 2 dimensions to get each pixel
+\end{enumerate}
+
+\section{Try experimenting with different 2D block size values}
+
+With block size of 32 it works well, however using block size like 64 or 128 it doesn't work anymore.
+
+
+\section{Compare speedup with previous 1D grid}
+
+Using 2D grid with blockSize of 32x32, the speed is actually around 1.8 times slower than using 1D grid.
+
+\end{document}

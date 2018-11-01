@@ -1,0 +1,31 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Report.3.cuda}
+\author{Remi}
+\date{October 2018}
+
+\begin{document}
+
+\maketitle
+
+\section{Explain how you implement the labwork}
+
+I followed the following steps:
+\begin{enumerate}  
+\item Allocate variables devInput and devOutput using CudaMalloc
+\item Copy data from host to device using CudaMemcpy
+\item Launch the kernel
+\item Copy back the memory from device to host
+\item Then don't forget to free the 2 allocated variables
+\end{enumerate}
+
+\section{What’s the speedup?}
+
+About 110ms instead of 800ms before with openMP so about 7.2 times faster
+
+\section{Try experimenting with different block size values}
+
+Works with blockSize of 1024 but not 32 because the image is too big so the maximum dimension of the grid size exceeded 
+
+\end{document}
