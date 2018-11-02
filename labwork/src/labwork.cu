@@ -236,6 +236,8 @@ void Labwork::labwork4_GPU() {
    
 }
 
+
+
 // CPU implementation of Gaussian Blur
 void Labwork::labwork5_CPU() {
     int kernel[] = { 0, 0, 1, 2, 1, 0, 0,  
@@ -273,7 +275,68 @@ void Labwork::labwork5_CPU() {
     }
 }
 
+__global__ void blur(uchar3* input, uchar3* output, int width, int height) {
+    int kernel[] = { 0, 0, 1, 2, 1, 0, 0,  
+                     0, 3, 13, 22, 13, 3, 0,  
+                     1, 13, 59, 97, 59, 13, 1,  
+                     2, 22, 97, 159, 97, 22, 2,  
+                     1, 13, 59, 97, 59, 13, 1,  
+                     0, 3, 13, 22, 13, 3, 0,
+                     0, 0, 1, 2, 1, 0, 0 };
+
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx > width) return;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if (tidy > height) return;
+    int tid = tidx + tidy * width;
+
+    int s = 0;
+    int weightsSum = 0;
+
+    for (int row = -3; row <= 3; row++) {
+	for (int col = 3; col <= 3; col++) {
+	    int tempTid = tid + row * width + col;
+	    if (tempTid < 0) continue;
+	    if (tempTid >= width * height) continue;
+
+	    int gray = (input[tempTid].x + input[tempTid].y + input[tempTid].z) / 3;
+	    s += gray * kernel[(row + 3) * 7 + col + 3];
+	    weightsSum += kernel[(row + 3) * 7 + col + 3];
+	}
+    }
+
+    s /= 49 * weightsSum;
+    output[tid].x = output[tid].y = output[tid].z = s;
+}
+
 void Labwork::labwork5_GPU() {
+
+    // inputImage->width, inputImage->height    
+	int pixelCount = inputImage->width * inputImage->height;
+	outputImage = static_cast<char *>(malloc(pixelCount * 3));
+	//int blockSize = 1024;
+	//int numBlock = pixelCount / blockSize;
+	dim3 blockSize = dim3(32, 32);
+	dim3 gridSize = dim3((inputImage->width + 31) / blockSize.x, (inputImage->height + 31) / blockSize.y);
+
+    // cuda malloc: devInput, devOutput
+	uchar3 *devInput;
+	uchar3 *devOutput;
+	cudaMalloc(&devInput, inputImage->width * inputImage->height * 3);	
+	cudaMalloc(&devOutput, inputImage->width * inputImage->height * 3);
+
+    // cudaMemcpy: inputImage (hostInput) -> devInput
+	cudaMemcpy(devInput, inputImage->buffer, inputImage->width * inputImage->height * 3, cudaMemcpyHostToDevice);
+
+    // launch the kernel
+	blur<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height);
+
+    // cudaMemcpy: devOutput -> inputImage (host)
+	cudaMemcpy(outputImage, devOutput, inputImage->width * inputImage->height * 3, cudaMemcpyDeviceToHost);
+
+    // cudaFree
+	cudaFree(&devInput);
+	cudaFree(&devOutput);
     
 }
 
