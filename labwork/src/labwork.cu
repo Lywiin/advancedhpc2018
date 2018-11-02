@@ -294,7 +294,7 @@ __global__ void blur(uchar3* input, uchar3* output, int width, int height) {
     int weightsSum = 0;
 
     for (int row = -3; row <= 3; row++) {
-	for (int col = 3; col <= 3; col++) {
+	for (int col = -3; col <= 3; col++) {
 	    int tempTid = tid + row * width + col;
 	    if (tempTid < 0) continue;
 	    if (tempTid >= width * height) continue;
@@ -305,7 +305,7 @@ __global__ void blur(uchar3* input, uchar3* output, int width, int height) {
 	}
     }
 
-    s /= 49 * weightsSum;
+    s /= weightsSum;
     output[tid].x = output[tid].y = output[tid].z = s;
 }
 
