@@ -56,10 +56,14 @@ int main(int argc, char **argv) {
             printf("labwork 4 CPU ellapsed %.1fms\n", lwNum, timer.getElapsedTimeInMilliSec());
             break;
         case 5:
+	    timer.start();
             labwork.labwork5_CPU();
             labwork.saveOutputImage("labwork5-cpu-out.jpg");
-            labwork.labwork5_GPU();
+            printf("labwork 5 CPU ellapsed %.1fms\n", lwNum, timer.getElapsedTimeInMilliSec());
+            timer.start();
+	    labwork.labwork5_GPU();
             labwork.saveOutputImage("labwork5-gpu-out.jpg");
+            printf("labwork 5 GPU ellapsed %.1fms\n", lwNum, timer.getElapsedTimeInMilliSec());
             break;
         case 6:
             labwork.labwork6_GPU();
