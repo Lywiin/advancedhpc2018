@@ -313,7 +313,50 @@ __global__ void blur(uchar3* input, uchar3* output, int width, int height) {
     output[tid].x = output[tid].y = output[tid].z = s;
 }
 
+__global__ void blurShared(uchar3* input, uchar3* output, int* coefficients, int width, int height) {
+
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx > width) return;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if (tidy > height) return;
+    int tid = tidx + tidy * width;
+
+    int s = 0;
+    int weightsSum = 0;
+
+    int localTid = threadIdx.x + threadIdx.y * blockDim.x;
+    __shared__ int scoefficients[49];
+    if (localTid < 49) {
+	scoefficients[localTid] = coefficients[localTid];
+    }
+    __syncthreads();    
+
+    for (int row = -3; row <= 3; row++) {
+	for (int col = -3; col <= 3; col++) {
+	    int tempTid = tid + row * width + col;
+	    //int tempTid = (row + 3) * 7 + col + 30;
+	    if (tempTid < 0) continue;
+	    if (tempTid >= width * height) continue;
+
+	    int gray = (input[tempTid].x + input[tempTid].y + input[tempTid].z) / 3;
+	    s += gray * scoefficients[(row + 3) * 7 + col + 3];
+	    weightsSum += scoefficients[(row + 3) * 7 + col + 3];
+	}
+    }
+
+    s /= weightsSum;
+    output[tid].x = output[tid].y = output[tid].z = s;
+}
+
 void Labwork::labwork5_GPU() {
+    int coefficients[] = { 0, 0, 1, 2, 1, 0, 0,  
+                     0, 3, 13, 22, 13, 3, 0,  
+                     1, 13, 59, 97, 59, 13, 1,  
+                     2, 22, 97, 159, 97, 22, 2,  
+                     1, 13, 59, 97, 59, 13, 1,  
+                     0, 3, 13, 22, 13, 3, 0,
+                     0, 0, 1, 2, 1, 0, 0 };
+
 
     // inputImage->width, inputImage->height    
 	int pixelCount = inputImage->width * inputImage->height;
@@ -333,7 +376,7 @@ void Labwork::labwork5_GPU() {
 	cudaMemcpy(devInput, inputImage->buffer, inputImage->width * inputImage->height * 3, cudaMemcpyHostToDevice);
 
     // launch the kernel
-	blur<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height);
+	blurShared<<<gridSize, blockSize>>>(devInput, devOutput, coefficients, inputImage->width, inputImage->height);
 
     // cudaMemcpy: devOutput -> inputImage (host)
 	cudaMemcpy(outputImage, devOutput, inputImage->width * inputImage->height * 3, cudaMemcpyDeviceToHost);
