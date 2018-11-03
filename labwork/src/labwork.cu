@@ -416,6 +416,20 @@ __global__ void brightness(uchar3* input, uchar3* output, int width, int height,
     output[tid].z = output[tid].y = output[tid].x = bPix;
 }
 
+__global__ void blending(uchar3* input1, uchar3* input2, uchar3* output, int width, int height, int c) {
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx > width) return;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if (tidy > height) return;
+    int tid = tidx + tidy * width;
+    
+    int gray1 = (input1[tid].x + input1[tid].y + input1[tid].z) / 3;
+    int gray2 = (input2[tid].x + input2[tid].y + input2[tid].z) / 3;
+    int bPix = gray1 * c + gray2 * (1 - c);
+    
+    output[tid].z = output[tid].y = output[tid].x = bPix;
+}
+
 void Labwork::labwork6_GPU() {
     // inputImage->width, inputImage->height    
 	int pixelCount = inputImage->width * inputImage->height;
@@ -433,6 +447,7 @@ void Labwork::labwork6_GPU() {
 
     // cudaMemcpy: inputImage (hostInput) -> devInput
 	cudaMemcpy(devInput, inputImage->buffer, inputImage->width * inputImage->height * 3, cudaMemcpyHostToDevice);
+
 	char buffer[3];
 
 /*
@@ -442,12 +457,19 @@ void Labwork::labwork6_GPU() {
     // launch binarization kernel
 	//binarization<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, threshold);
 */
-
+/*
 	printf("Enter a brightness value to add : ", buffer);
 	scanf("%s", buffer);
 	int brightnessToAdd = atoi(buffer);
     // launch brightness kernel
 	brightness<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, brightnessToAdd);
+*/
+
+	printf("Enter a weight for first image : ", buffer);
+	scanf("%s", buffer);
+	int c = atoi(buffer);
+    // launch brightness kernel
+	blending<<<gridSize, blockSize>>>(devInput, devInput, devOutput, inputImage->width, inputImage->height, c);
 
 
     // cudaMemcpy: devOutput -> inputImage (host)
