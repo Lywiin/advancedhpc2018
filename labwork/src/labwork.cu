@@ -387,7 +387,75 @@ void Labwork::labwork5_GPU() {
     
 }
 
+__global__ void binarization(uchar3* input, uchar3* output, int width, int height, int threshold) {
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx > width) return;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if (tidy > height) return;
+    int tid = tidx + tidy * width;
+    
+    int gray = (input[tid].x + input[tid].y + input[tid].z) / 3;
+    int bPix = (gray / threshold) * 255;
+
+    output[tid].z = output[tid].y = output[tid].x = bPix;
+}
+
+__global__ void brightness(uchar3* input, uchar3* output, int width, int height, int brightnessToAdd) {
+    int tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx > width) return;
+    int tidy = threadIdx.y + blockIdx.y * blockDim.y;
+    if (tidy > height) return;
+    int tid = tidx + tidy * width;
+    
+    int gray = (input[tid].x + input[tid].y + input[tid].z) / 3;
+    int bPix = gray + brightnessToAdd;
+    
+    if (bPix < 0) bPix = 0;
+    if (bPix > 255) bPix = 255;
+
+    output[tid].z = output[tid].y = output[tid].x = bPix;
+}
+
 void Labwork::labwork6_GPU() {
+    // inputImage->width, inputImage->height    
+	int pixelCount = inputImage->width * inputImage->height;
+	outputImage = static_cast<char *>(malloc(pixelCount * 3));
+	//int blockSize = 1024;
+	//int numBlock = pixelCount / blockSize;
+	dim3 blockSize = dim3(32, 32);
+	dim3 gridSize = dim3((inputImage->width + 31) / blockSize.x, (inputImage->height + 31) / blockSize.y);
+
+    // cuda malloc: devInput, devOutput
+	uchar3 *devInput;
+	uchar3 *devOutput;
+	cudaMalloc(&devInput, inputImage->width * inputImage->height * 3);	
+	cudaMalloc(&devOutput, inputImage->width * inputImage->height * 3);
+
+    // cudaMemcpy: inputImage (hostInput) -> devInput
+	cudaMemcpy(devInput, inputImage->buffer, inputImage->width * inputImage->height * 3, cudaMemcpyHostToDevice);
+	char buffer[3];
+
+/*
+	printf("Enter a threshold : ");
+	scanf("%s", buffer);
+	int threshold = atoi(buffer);
+    // launch binarization kernel
+	//binarization<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, threshold);
+*/
+
+	printf("Enter a brightness value to add : ", buffer);
+	scanf("%s", buffer);
+	int brightnessToAdd = atoi(buffer);
+    // launch brightness kernel
+	brightness<<<gridSize, blockSize>>>(devInput, devOutput, inputImage->width, inputImage->height, brightnessToAdd);
+
+
+    // cudaMemcpy: devOutput -> inputImage (host)
+	cudaMemcpy(outputImage, devOutput, inputImage->width * inputImage->height * 3, cudaMemcpyDeviceToHost);
+
+    // cudaFree
+	cudaFree(&devInput);
+	cudaFree(&devOutput);
 
 }
 
